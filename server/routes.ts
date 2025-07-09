@@ -33,6 +33,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.error("Failed to initialize default data:", error);
   }
 
+  // User role routes
+  app.get("/api/user-roles", async (req, res) => {
+    try {
+      const roles = await storage.getUserRoles();
+      res.json(roles);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch user roles" });
+    }
+  });
+
   // User routes
   app.get("/api/users", async (req, res) => {
     try {

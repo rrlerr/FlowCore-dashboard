@@ -219,7 +219,7 @@ export default function TicketsPage() {
                       <SelectValue placeholder="Select user" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Unassigned</SelectItem>
+                      <SelectItem value="0">Unassigned</SelectItem>
                       {users.map((user) => (
                         <SelectItem key={user.id} value={user.id.toString()}>
                           {user.fullName || `User ${user.id}`}
@@ -235,7 +235,7 @@ export default function TicketsPage() {
                       <SelectValue placeholder="Select user" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Unknown</SelectItem>
+                      <SelectItem value="0">Unknown</SelectItem>
                       {users.map((user) => (
                         <SelectItem key={user.id} value={user.id.toString()}>
                           {user.fullName || `User ${user.id}`}

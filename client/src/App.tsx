@@ -71,18 +71,18 @@ function Router() {
   return (
     <Layout activeModule={activeModule} onModuleChange={handleModuleChange}>
       <Switch>
-        <Route path="/">{() => { setActiveModule("dashboard"); return <Dashboard />; }}</Route>
-        <Route path="/dashboard">{() => { setActiveModule("dashboard"); return <Dashboard />; }}</Route>
-        <Route path="/leads">{() => { setActiveModule("leads"); return <LeadsPage />; }}</Route>
-        <Route path="/tickets">{() => { setActiveModule("tickets"); return <TicketsPage />; }}</Route>
-        <Route path="/deals">{() => { setActiveModule("deals"); return <DealsPage />; }}</Route>
-        <Route path="/projects">{() => { setActiveModule("projects"); return <ProjectsPage />; }}</Route>
-        <Route path="/tasks">{() => { setActiveModule("tasks"); return <TasksPage />; }}</Route>
-        <Route path="/emails">{() => { setActiveModule("emails"); return <EmailsPage />; }}</Route>
-        <Route path="/users">{() => { setActiveModule("users"); return <UsersPage />; }}</Route>
-        <Route path="/companies">{() => { setActiveModule("companies"); return <CompaniesPage />; }}</Route>
-        <Route path="/reports">{() => { setActiveModule("reports"); return <ReportsPage />; }}</Route>
-        <Route>{renderPage()}</Route>
+        <Route path="/" component={Dashboard} />
+        <Route path="/dashboard" component={Dashboard} />
+        <Route path="/leads" component={LeadsPage} />
+        <Route path="/tickets" component={TicketsPage} />
+        <Route path="/deals" component={DealsPage} />
+        <Route path="/projects" component={ProjectsPage} />
+        <Route path="/tasks" component={TasksPage} />
+        <Route path="/emails" component={EmailsPage} />
+        <Route path="/users" component={UsersPage} />
+        <Route path="/companies" component={CompaniesPage} />
+        <Route path="/reports" component={ReportsPage} />
+        <Route component={NotFound} />
       </Switch>
       
       <AIAssistant 

@@ -226,7 +226,7 @@ export default function DealsPage() {
                       <SelectValue placeholder="Select user" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Unassigned</SelectItem>
+                      <SelectItem value="0">Unassigned</SelectItem>
                       {users.map((user) => (
                         <SelectItem key={user.id} value={user.id.toString()}>
                           {user.fullName || `User ${user.id}`}
@@ -242,7 +242,7 @@ export default function DealsPage() {
                       <SelectValue placeholder="Select lead" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">No lead</SelectItem>
+                      <SelectItem value="0">No lead</SelectItem>
                       {leads.map((lead) => (
                         <SelectItem key={lead.id} value={lead.id.toString()}>
                           {lead.name}
@@ -258,7 +258,7 @@ export default function DealsPage() {
                       <SelectValue placeholder="Select company" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">No company</SelectItem>
+                      <SelectItem value="0">No company</SelectItem>
                       {companies.map((company) => (
                         <SelectItem key={company.id} value={company.id.toString()}>
                           {company.name}
