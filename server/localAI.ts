@@ -1,6 +1,3 @@
-// Local AI Assistant - No external APIs required
-// Uses keyword matching and intent recognition for FlowCore business management
-
 interface AIResponse {
   action: "navigate" | "create" | "respond" | "open_modal";
   module?: string;
@@ -9,260 +6,302 @@ interface AIResponse {
   message?: string;
 }
 
-// Common typos and variations
-const FUZZY_MATCHES = {
-  // Navigation terms
-  "dashbord": "dashboard",
-  "dashbaord": "dashboard",
-  "crm": "crm",
-  "customer": "crm",
-  "lead": "crm",
-  "leads": "crm",
-  "ticket": "tickets",
-  "tiket": "tickets",
-  "tickets": "tickets",
-  "support": "tickets",
-  "sale": "sales",
-  "sales": "sales",
-  "revenue": "sales",
-  "deal": "sales",
-  "deals": "sales",
-  "project": "projects",
-  "projects": "projects",
-  "task": "projects",
-  "tasks": "projects",
-  "email": "email",
-  "mail": "email",
-  "emails": "email",
-  
-  // Actions
-  "creat": "create",
-  "create": "create",
-  "add": "create",
-  "new": "create",
-  "make": "create",
-  "open": "navigate",
-  "show": "navigate",
-  "go": "navigate",
-  "goto": "navigate",
-  "view": "navigate",
-  "edit": "edit",
-  "update": "edit",
-  "modify": "edit",
-  "delete": "delete",
-  "remove": "delete",
-  
-  // Common misspellings
-  "prject": "project",
-  "projeect": "project",
-  "leadd": "lead",
-  "emial": "email",
-  "emai": "email"
+// Advanced natural language processing patterns
+const INTENT_PATTERNS = {
+  navigation: [
+    /(?:go to|navigate to|open|show me|take me to|view)\s+(?:the\s+)?(.+?)(?:\s+(?:page|section|module|dashboard))?$/i,
+    /(?:switch to|change to)\s+(.+?)(?:\s+(?:mode|view))?$/i,
+    /i\s+(?:want to|need to|would like to)\s+(?:see|check|view)\s+(.+?)$/i
+  ],
+  create: [
+    /(?:create|add|new|make)\s+(?:a\s+)?(.+?)(?:\s+(?:record|entry|item))?(?:\s+for\s+(.+?))?$/i,
+    /i\s+(?:want to|need to|would like to)\s+(?:create|add|make)\s+(?:a\s+)?(.+?)$/i,
+    /(?:register|setup|establish)\s+(?:a\s+)?(.+?)$/i
+  ],
+  search: [
+    /(?:find|search|look for|locate)\s+(.+?)$/i,
+    /(?:show me|display)\s+(?:all\s+)?(.+?)(?:\s+(?:with|containing|matching)\s+(.+?))?$/i,
+    /i\s+(?:want to|need to)\s+(?:find|search for)\s+(.+?)$/i
+  ],
+  update: [
+    /(?:update|edit|modify|change)\s+(.+?)(?:\s+(?:to|with)\s+(.+?))?$/i,
+    /(?:set|assign)\s+(.+?)(?:\s+(?:to|as)\s+(.+?))?$/i
+  ],
+  delete: [
+    /(?:delete|remove|cancel)\s+(.+?)$/i,
+    /(?:close|resolve)\s+(.+?)$/i
+  ],
+  status: [
+    /(?:what|show)\s+(?:is\s+)?(?:the\s+)?(?:status of|current)\s+(.+?)$/i,
+    /(?:how many|count)\s+(.+?)(?:\s+(?:are there|do we have))?$/i
+  ],
+  assign: [
+    /(?:assign|give)\s+(.+?)\s+to\s+(.+?)$/i,
+    /(?:set\s+)?(.+?)\s+(?:assignee|owner|responsible)\s+(?:to|as)\s+(.+?)$/i
+  ]
 };
 
-// Normalize text by fixing typos and converting to lowercase
+const MODULE_MAPPINGS = {
+  // CRM Module
+  'lead': 'leads', 'leads': 'leads', 'customer': 'leads', 'customers': 'leads', 'prospect': 'leads', 'prospects': 'leads',
+  'contact': 'leads', 'contacts': 'leads', 'client': 'leads', 'clients': 'leads',
+  
+  // Tickets Module
+  'ticket': 'tickets', 'tickets': 'tickets', 'support': 'tickets', 'issue': 'tickets', 'issues': 'tickets',
+  'bug': 'tickets', 'bugs': 'tickets', 'problem': 'tickets', 'problems': 'tickets', 'help': 'tickets',
+  
+  // Deals Module
+  'deal': 'deals', 'deals': 'deals', 'sale': 'deals', 'sales': 'deals', 'opportunity': 'deals',
+  'opportunities': 'deals', 'revenue': 'deals', 'pipeline': 'deals',
+  
+  // Projects Module
+  'project': 'projects', 'projects': 'projects', 'work': 'projects', 'job': 'projects', 'jobs': 'projects',
+  
+  // Tasks Module
+  'task': 'tasks', 'tasks': 'tasks', 'todo': 'tasks', 'todos': 'tasks', 'assignment': 'tasks',
+  'assignments': 'tasks', 'action': 'tasks', 'actions': 'tasks',
+  
+  // Email Module
+  'email': 'emails', 'emails': 'emails', 'message': 'emails', 'messages': 'emails', 'mail': 'emails',
+  'communication': 'emails', 'correspondence': 'emails',
+  
+  // Users Module
+  'user': 'users', 'users': 'users', 'employee': 'users', 'employees': 'users', 'staff': 'users',
+  'team': 'users', 'member': 'users', 'members': 'users', 'person': 'users', 'people': 'users',
+  
+  // Companies Module
+  'company': 'companies', 'companies': 'companies', 'business': 'companies', 'businesses': 'companies',
+  'organization': 'companies', 'organizations': 'companies', 'firm': 'companies', 'firms': 'companies',
+  
+  // Dashboard
+  'dashboard': 'dashboard', 'home': 'dashboard', 'overview': 'dashboard', 'summary': 'dashboard',
+  'stats': 'dashboard', 'statistics': 'dashboard', 'metrics': 'dashboard', 'analytics': 'dashboard',
+  
+  // Reports
+  'report': 'reports', 'reports': 'reports', 'analytics': 'reports', 'insights': 'reports',
+  'data': 'reports', 'analysis': 'reports'
+};
+
+const STATUS_MAPPINGS = {
+  // Lead statuses
+  'new': 'new', 'fresh': 'new', 'recent': 'new',
+  'contacted': 'contacted', 'reached': 'contacted', 'called': 'contacted',
+  'qualified': 'qualified', 'good': 'qualified', 'promising': 'qualified',
+  'converted': 'converted', 'closed': 'converted', 'won': 'converted',
+  'lost': 'lost', 'dead': 'lost', 'rejected': 'lost',
+  
+  // Ticket statuses
+  'open': 'open', 'new': 'open', 'active': 'open',
+  'progress': 'in_progress', 'working': 'in_progress', 'processing': 'in_progress',
+  'resolved': 'resolved', 'fixed': 'resolved', 'done': 'resolved', 'completed': 'resolved',
+  'closed': 'closed', 'finished': 'closed',
+  
+  // Project/Task statuses
+  'todo': 'todo', 'pending': 'todo', 'planned': 'todo',
+  'active': 'active', 'current': 'active', 'ongoing': 'active',
+  'completed': 'completed', 'finished': 'completed', 'done': 'completed',
+  'cancelled': 'cancelled', 'canceled': 'cancelled', 'stopped': 'cancelled'
+};
+
+const PRIORITY_MAPPINGS = {
+  'low': 'low', 'minor': 'low', 'small': 'low',
+  'medium': 'medium', 'normal': 'medium', 'regular': 'medium', 'standard': 'medium',
+  'high': 'high', 'important': 'high', 'urgent': 'high', 'critical': 'high', 'major': 'high'
+};
+
 function normalizeText(text: string): string {
-  let normalized = text.toLowerCase().trim();
-  
-  // Replace common typos
-  Object.entries(FUZZY_MATCHES).forEach(([typo, correct]) => {
-    const regex = new RegExp(`\\b${typo}\\b`, 'gi');
-    normalized = normalized.replace(regex, correct);
-  });
-  
-  return normalized;
+  return text.toLowerCase().replace(/[^\w\s]/g, '').trim();
 }
 
-// Extract intent from user message
 function extractIntent(message: string): { action: string; target: string; context: string[] } {
-  const normalized = normalizeText(message);
-  const words = normalized.split(/\s+/);
+  const normalizedMessage = normalizeText(message);
   
-  let action = "respond";
-  let target = "";
-  const context: string[] = [];
-  
-  // Check for navigation intents
-  if (words.some(word => ["go", "navigate", "open", "show", "view", "goto"].includes(word))) {
-    action = "navigate";
-    
-    if (words.some(word => ["dashboard", "home", "main"].includes(word))) {
-      target = "dashboard";
-    } else if (words.some(word => ["crm", "customer", "lead", "leads"].includes(word))) {
-      target = "crm";
-    } else if (words.some(word => ["ticket", "tickets", "support"].includes(word))) {
-      target = "tickets";
-    } else if (words.some(word => ["sales", "revenue", "deal", "deals"].includes(word))) {
-      target = "sales";
-    } else if (words.some(word => ["project", "projects", "task", "tasks"].includes(word))) {
-      target = "projects";
-    } else if (words.some(word => ["email", "mail", "emails"].includes(word))) {
-      target = "email";
+  // Check each intent pattern
+  for (const [intent, patterns] of Object.entries(INTENT_PATTERNS)) {
+    for (const pattern of patterns) {
+      const match = normalizedMessage.match(pattern);
+      if (match) {
+        const target = match[1] || '';
+        const context = match.slice(2).filter(Boolean);
+        return { action: intent, target, context };
+      }
     }
   }
   
-  // Check for creation intents
-  if (words.some(word => ["create", "add", "new", "make"].includes(word))) {
-    action = "create";
-    
-    if (words.some(word => ["lead", "customer", "contact"].includes(word))) {
-      target = "lead";
-    } else if (words.some(word => ["ticket", "support"].includes(word))) {
-      target = "ticket";
-    } else if (words.some(word => ["deal", "sale"].includes(word))) {
-      target = "deal";
-    } else if (words.some(word => ["project"].includes(word))) {
-      target = "project";
-    } else if (words.some(word => ["task"].includes(word))) {
-      target = "task";
-    } else if (words.some(word => ["email", "mail"].includes(word))) {
-      target = "email";
-    }
+  // Fallback: look for keywords
+  if (normalizedMessage.includes('create') || normalizedMessage.includes('add') || normalizedMessage.includes('new')) {
+    return { action: 'create', target: normalizedMessage, context: [] };
+  }
+  if (normalizedMessage.includes('find') || normalizedMessage.includes('search') || normalizedMessage.includes('show')) {
+    return { action: 'search', target: normalizedMessage, context: [] };
+  }
+  if (normalizedMessage.includes('go') || normalizedMessage.includes('open') || normalizedMessage.includes('navigate')) {
+    return { action: 'navigation', target: normalizedMessage, context: [] };
   }
   
-  // Collect context words
-  words.forEach(word => {
-    if (["urgent", "high", "medium", "low", "priority"].includes(word)) {
-      context.push(word);
-    }
-    if (["q1", "q2", "q3", "q4", "quarter", "monthly", "weekly"].includes(word)) {
-      context.push(word);
-    }
-  });
-  
-  return { action, target, context };
+  return { action: 'respond', target: normalizedMessage, context: [] };
 }
 
-// Generate helpful responses
 function generateResponse(intent: { action: string; target: string; context: string[] }, originalMessage: string): AIResponse {
   const { action, target, context } = intent;
   
-  // Navigation responses
-  if (action === "navigate") {
-    switch (target) {
-      case "dashboard":
-        return { action: "navigate", module: "dashboard", message: "Opening dashboard overview" };
-      case "crm":
-        return { action: "navigate", module: "crm", message: "Opening CRM module to manage leads and customers" };
-      case "tickets":
-        return { action: "navigate", module: "tickets", message: "Opening support tickets module" };
-      case "sales":
-        return { action: "navigate", module: "sales", message: "Opening sales and revenue module" };
-      case "projects":
-        return { action: "navigate", module: "projects", message: "Opening projects and tasks module" };
-      case "email":
-        return { action: "navigate", module: "email", message: "Opening email communication module" };
-      default:
-        return { action: "respond", message: "I can help you navigate to: Dashboard, CRM, Tickets, Sales, Projects, or Email. Which would you like to see?" };
+  // Map target to module
+  const words = target.split(/\s+/);
+  let module = null;
+  
+  for (const word of words) {
+    if (MODULE_MAPPINGS[word]) {
+      module = MODULE_MAPPINGS[word];
+      break;
     }
   }
   
-  // Creation responses - trigger modal opening
-  if (action === "create") {
-    switch (target) {
-      case "lead":
-        return { 
-          action: "open_modal", 
-          type: "lead", 
-          module: "crm",
-          message: "I'll help you create a new lead. Opening the lead creation form..." 
+  switch (action) {
+    case 'navigation':
+      if (module) {
+        return {
+          action: "navigate",
+          module,
+          message: `Navigating to ${module} module.`
         };
-      case "ticket":
-        return { 
-          action: "open_modal", 
-          type: "ticket", 
-          module: "tickets",
-          message: "I'll help you create a new support ticket. Opening the ticket creation form..." 
+      } else {
+        return {
+          action: "respond",
+          message: "I can help you navigate to: Dashboard, Leads, Tickets, Deals, Projects, Tasks, Emails, Users, or Companies. Which would you like to visit?"
         };
-      case "deal":
-        return { 
-          action: "open_modal", 
-          type: "deal", 
-          module: "sales",
-          message: "I'll help you create a new deal. Opening the deal creation form..." 
+      }
+      
+    case 'create':
+      if (module) {
+        const entityName = module.slice(0, -1); // Remove 's' from plural
+        return {
+          action: "open_modal",
+          module,
+          type: "create",
+          message: `Opening form to create a new ${entityName}.`
         };
-      case "project":
-        return { 
-          action: "open_modal", 
-          type: "project", 
-          module: "projects",
-          message: "I'll help you create a new project. Opening the project creation form..." 
+      } else {
+        return {
+          action: "respond",
+          message: "I can help you create: Leads, Tickets, Deals, Projects, Tasks, Emails, Users, or Companies. What would you like to create?"
         };
-      case "task":
-        return { 
-          action: "open_modal", 
-          type: "task", 
-          module: "projects",
-          message: "I'll help you create a new task. Opening the task creation form..." 
+      }
+      
+    case 'search':
+      if (module) {
+        const searchTerm = context[0] || target.replace(new RegExp(Object.keys(MODULE_MAPPINGS).join('|'), 'gi'), '').trim();
+        return {
+          action: "navigate",
+          module,
+          data: { search: searchTerm },
+          message: searchTerm ? `Searching for "${searchTerm}" in ${module}.` : `Showing all ${module}.`
         };
-      case "email":
-        return { 
-          action: "open_modal", 
-          type: "email", 
-          module: "email",
-          message: "I'll help you compose a new email. Opening the email composer..." 
+      } else {
+        return {
+          action: "respond",
+          message: "I can search through: Leads, Tickets, Deals, Projects, Tasks, Emails, Users, or Companies. What would you like to search for?"
         };
-      default:
-        return { action: "respond", message: "I can help you create: leads, tickets, deals, projects, tasks, or emails. What would you like to create?" };
-    }
+      }
+      
+    case 'update':
+      return {
+        action: "respond",
+        message: "To update records, please navigate to the specific module and select the item you want to modify. I can help you navigate there if you tell me what you want to update."
+      };
+      
+    case 'delete':
+      return {
+        action: "respond",
+        message: "To delete records, please navigate to the specific module and select the item you want to remove. I can help you navigate there if you tell me what you want to delete."
+      };
+      
+    case 'status':
+      if (module === 'dashboard' || target.includes('overview') || target.includes('summary')) {
+        return {
+          action: "navigate",
+          module: "dashboard",
+          message: "Showing dashboard with current statistics and overview."
+        };
+      } else if (module) {
+        return {
+          action: "navigate",
+          module,
+          message: `Showing ${module} status and information.`
+        };
+      } else {
+        return {
+          action: "navigate",
+          module: "dashboard",
+          message: "Showing overall system status and statistics."
+        };
+      }
+      
+    case 'assign':
+      return {
+        action: "respond",
+        message: "To assign items, please navigate to the specific module (Leads, Tickets, Deals, Projects, or Tasks) and select the item you want to assign. I can help you navigate there."
+      };
+      
+    default:
+      // Try to handle common business queries
+      if (originalMessage.toLowerCase().includes('help')) {
+        return {
+          action: "respond",
+          message: "I can help you with: Navigate (go to any module), Create (add new records), Search (find specific items), View status (see dashboard), and manage all your business data. What would you like to do?"
+        };
+      }
+      
+      if (originalMessage.toLowerCase().includes('stats') || originalMessage.toLowerCase().includes('numbers')) {
+        return {
+          action: "navigate",
+          module: "dashboard",
+          message: "Showing your business statistics and key metrics."
+        };
+      }
+      
+      return {
+        action: "respond",
+        message: "I understand you want to work with your business data. I can help you navigate to different modules, create new records, search for information, or show statistics. Try saying something like 'show me leads', 'create a new ticket', or 'go to dashboard'."
+      };
   }
-  
-  // Handle common business queries
-  const lowerMessage = originalMessage.toLowerCase();
-  
-  if (lowerMessage.includes("sales") && (lowerMessage.includes("report") || lowerMessage.includes("chart"))) {
-    return { action: "navigate", module: "sales", message: "Opening sales module where you can view charts and reports" };
-  }
-  
-  if (lowerMessage.includes("help") || lowerMessage.includes("what can you do")) {
-    return { 
-      action: "respond", 
-      message: "I can help you with:\n• Navigate between modules (CRM, Tickets, Sales, Projects, Email)\n• Create new leads, tickets, deals, projects, or tasks\n• Open forms and modals\n• Find information\n\nJust ask me naturally like 'create a new ticket' or 'show me the sales page'!" 
+}
+
+export async function processLocalAIMessage(message: string): Promise<AIResponse> {
+  try {
+    const intent = extractIntent(message);
+    const response = generateResponse(intent, message);
+    
+    // Log for debugging
+    console.log('AI Intent:', intent);
+    console.log('AI Response:', response);
+    
+    return response;
+  } catch (error) {
+    console.error('AI Processing Error:', error);
+    return {
+      action: "respond",
+      message: "I'm having trouble understanding that request. Try asking me to navigate to a specific module, create a new record, or search for information."
     };
   }
-  
-  if (lowerMessage.includes("stats") || lowerMessage.includes("overview") || lowerMessage.includes("summary")) {
-    return { action: "navigate", module: "dashboard", message: "Opening dashboard to show your business overview and stats" };
-  }
-  
-  // Default response with suggestions
-  return { 
-    action: "respond", 
-    message: "I'm here to help! Try asking me to:\n• 'Open CRM' or 'Show tickets'\n• 'Create a new lead' or 'Add a ticket'\n• 'Navigate to sales' or 'Go to projects'\n• 'Help me with...' for more options" 
-  };
 }
 
-// Main processing function
-export async function processLocalAIMessage(message: string): Promise<AIResponse> {
-  if (!message || message.trim().length === 0) {
-    return { action: "respond", message: "Please let me know how I can help you!" };
-  }
-  
-  // Extract intent from the message
-  const intent = extractIntent(message);
-  
-  // Generate appropriate response
-  const response = generateResponse(intent, message);
-  
-  return response;
-}
-
-// Helper function to suggest corrections for unclear requests
 export function suggestCorrections(message: string): string[] {
-  const normalized = normalizeText(message);
-  const suggestions: string[] = [];
+  const suggestions = [];
+  const words = normalizeText(message).split(/\s+/);
   
-  if (normalized.includes("crate") || normalized.includes("creat")) {
-    suggestions.push("Did you mean 'create'?");
+  // Suggest module names if partial matches found
+  for (const word of words) {
+    for (const [key, value] of Object.entries(MODULE_MAPPINGS)) {
+      if (key.includes(word) || word.includes(key)) {
+        suggestions.push(`Did you mean "${key}"?`);
+      }
+    }
   }
   
-  if (normalized.includes("tiket") || normalized.includes("tickt")) {
-    suggestions.push("Did you mean 'ticket'?");
+  // Common suggestions
+  if (message.length < 3) {
+    suggestions.push("Try asking me to 'show dashboard' or 'create new lead'");
   }
   
-  if (normalized.includes("prject") || normalized.includes("projet")) {
-    suggestions.push("Did you mean 'project'?");
-  }
-  
-  return suggestions;
+  return suggestions.slice(0, 3); // Limit to 3 suggestions
 }

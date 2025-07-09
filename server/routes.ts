@@ -1,21 +1,157 @@
-import type { Express } from "express";
 import { createServer, type Server } from "http";
+import type { Express } from "express";
 import { storage } from "./storage";
 import { 
-  insertLeadSchema, insertTicketSchema, insertDealSchema, 
-  insertProjectSchema, insertTaskSchema, insertEmailSchema 
+  insertUserSchema, insertCompanySchema, insertLeadSchema, insertTicketSchema, insertDealSchema, 
+  insertProjectSchema, insertTaskSchema, insertEmailSchema, insertUserRoleSchema, insertActivitySchema, insertReportSchema
 } from "@shared/schema";
 // Local AI assistant - no external APIs required
 import { processLocalAIMessage } from "./localAI";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Leads routes
+  // Initialize default roles and admin user
+  try {
+    const roles = await storage.getUserRoles();
+    if (roles.length === 0) {
+      await storage.createUserRole({ name: "admin", description: "Full system access", permissions: ["*"] });
+      await storage.createUserRole({ name: "manager", description: "Team management", permissions: ["read", "write", "manage_team"] });
+      await storage.createUserRole({ name: "user", description: "Basic user access", permissions: ["read", "write"] });
+    }
+    
+    const users = await storage.getUsers();
+    if (users.length === 0) {
+      await storage.createUser({
+        username: "admin",
+        email: "admin@flowcore.com",
+        password: "admin123",
+        fullName: "System Administrator",
+        roleId: 1,
+        isActive: true
+      });
+    }
+  } catch (error) {
+    console.error("Failed to initialize default data:", error);
+  }
+
+  // User routes
+  app.get("/api/users", async (req, res) => {
+    try {
+      const users = await storage.getUsers();
+      res.json(users);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
+  app.post("/api/users", async (req, res) => {
+    try {
+      const userData = insertUserSchema.parse(req.body);
+      const user = await storage.createUser(userData);
+      res.json(user);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid user data" });
+    }
+  });
+
+  app.put("/api/users/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const userData = insertUserSchema.partial().parse(req.body);
+      const user = await storage.updateUser(id, userData);
+      if (!user) {
+        res.status(404).json({ message: "User not found" });
+        return;
+      }
+      res.json(user);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid user data" });
+    }
+  });
+
+  app.delete("/api/users/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteUser(id);
+      if (!success) {
+        res.status(404).json({ message: "User not found" });
+        return;
+      }
+      res.json({ message: "User deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete user" });
+    }
+  });
+
+  // Company routes
+  app.get("/api/companies", async (req, res) => {
+    try {
+      const companies = await storage.getCompanies();
+      res.json(companies);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch companies" });
+    }
+  });
+
+  app.post("/api/companies", async (req, res) => {
+    try {
+      const companyData = insertCompanySchema.parse(req.body);
+      const company = await storage.createCompany(companyData);
+      res.json(company);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid company data" });
+    }
+  });
+
+  app.put("/api/companies/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const companyData = insertCompanySchema.partial().parse(req.body);
+      const company = await storage.updateCompany(id, companyData);
+      if (!company) {
+        res.status(404).json({ message: "Company not found" });
+        return;
+      }
+      res.json(company);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid company data" });
+    }
+  });
+
+  app.delete("/api/companies/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteCompany(id);
+      if (!success) {
+        res.status(404).json({ message: "Company not found" });
+        return;
+      }
+      res.json({ message: "Company deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete company" });
+    }
+  });
+
+  // Lead routes
   app.get("/api/leads", async (req, res) => {
     try {
       const leads = await storage.getLeads();
       res.json(leads);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch leads" });
+    }
+  });
+
+  app.get("/api/leads/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const lead = await storage.getLead(id);
+      if (!lead) {
+        res.status(404).json({ message: "Lead not found" });
+        return;
+      }
+      res.json(lead);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch lead" });
     }
   });
 
@@ -32,8 +168,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/leads/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const updates = insertLeadSchema.partial().parse(req.body);
-      const lead = await storage.updateLead(id, updates);
+      const leadData = insertLeadSchema.partial().parse(req.body);
+      const lead = await storage.updateLead(id, leadData);
       if (!lead) {
         res.status(404).json({ message: "Lead not found" });
         return;
@@ -58,13 +194,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Tickets routes
+  // Ticket routes
   app.get("/api/tickets", async (req, res) => {
     try {
       const tickets = await storage.getTickets();
       res.json(tickets);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch tickets" });
+    }
+  });
+
+  app.get("/api/tickets/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const ticket = await storage.getTicket(id);
+      if (!ticket) {
+        res.status(404).json({ message: "Ticket not found" });
+        return;
+      }
+      res.json(ticket);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch ticket" });
     }
   });
 
@@ -81,8 +231,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/tickets/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const updates = insertTicketSchema.partial().parse(req.body);
-      const ticket = await storage.updateTicket(id, updates);
+      const ticketData = insertTicketSchema.partial().parse(req.body);
+      const ticket = await storage.updateTicket(id, ticketData);
       if (!ticket) {
         res.status(404).json({ message: "Ticket not found" });
         return;
@@ -107,13 +257,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Deals routes
+  // Deal routes
   app.get("/api/deals", async (req, res) => {
     try {
       const deals = await storage.getDeals();
       res.json(deals);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch deals" });
+    }
+  });
+
+  app.get("/api/deals/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const deal = await storage.getDeal(id);
+      if (!deal) {
+        res.status(404).json({ message: "Deal not found" });
+        return;
+      }
+      res.json(deal);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch deal" });
     }
   });
 
@@ -127,13 +291,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Projects routes
+  app.put("/api/deals/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const dealData = insertDealSchema.partial().parse(req.body);
+      const deal = await storage.updateDeal(id, dealData);
+      if (!deal) {
+        res.status(404).json({ message: "Deal not found" });
+        return;
+      }
+      res.json(deal);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid deal data" });
+    }
+  });
+
+  app.delete("/api/deals/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteDeal(id);
+      if (!success) {
+        res.status(404).json({ message: "Deal not found" });
+        return;
+      }
+      res.json({ message: "Deal deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete deal" });
+    }
+  });
+
+  // Project routes
   app.get("/api/projects", async (req, res) => {
     try {
       const projects = await storage.getProjects();
       res.json(projects);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch projects" });
+    }
+  });
+
+  app.get("/api/projects/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const project = await storage.getProject(id);
+      if (!project) {
+        res.status(404).json({ message: "Project not found" });
+        return;
+      }
+      res.json(project);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch project" });
     }
   });
 
@@ -147,13 +354,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Tasks routes
+  app.put("/api/projects/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const projectData = insertProjectSchema.partial().parse(req.body);
+      const project = await storage.updateProject(id, projectData);
+      if (!project) {
+        res.status(404).json({ message: "Project not found" });
+        return;
+      }
+      res.json(project);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid project data" });
+    }
+  });
+
+  app.delete("/api/projects/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteProject(id);
+      if (!success) {
+        res.status(404).json({ message: "Project not found" });
+        return;
+      }
+      res.json({ message: "Project deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete project" });
+    }
+  });
+
+  // Task routes
   app.get("/api/tasks", async (req, res) => {
     try {
       const tasks = await storage.getTasks();
       res.json(tasks);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch tasks" });
+    }
+  });
+
+  app.get("/api/tasks/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const task = await storage.getTask(id);
+      if (!task) {
+        res.status(404).json({ message: "Task not found" });
+        return;
+      }
+      res.json(task);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch task" });
     }
   });
 
@@ -167,13 +417,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Emails routes
+  app.put("/api/tasks/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const taskData = insertTaskSchema.partial().parse(req.body);
+      const task = await storage.updateTask(id, taskData);
+      if (!task) {
+        res.status(404).json({ message: "Task not found" });
+        return;
+      }
+      res.json(task);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid task data" });
+    }
+  });
+
+  app.delete("/api/tasks/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteTask(id);
+      if (!success) {
+        res.status(404).json({ message: "Task not found" });
+        return;
+      }
+      res.json({ message: "Task deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete task" });
+    }
+  });
+
+  // Email routes
   app.get("/api/emails", async (req, res) => {
     try {
       const emails = await storage.getEmails();
       res.json(emails);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch emails" });
+    }
+  });
+
+  app.get("/api/emails/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const email = await storage.getEmail(id);
+      if (!email) {
+        res.status(404).json({ message: "Email not found" });
+        return;
+      }
+      res.json(email);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch email" });
     }
   });
 
@@ -184,6 +477,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(email);
     } catch (error) {
       res.status(400).json({ message: "Invalid email data" });
+    }
+  });
+
+  app.put("/api/emails/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const emailData = insertEmailSchema.partial().parse(req.body);
+      const email = await storage.updateEmail(id, emailData);
+      if (!email) {
+        res.status(404).json({ message: "Email not found" });
+        return;
+      }
+      res.json(email);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid email data" });
+    }
+  });
+
+  app.delete("/api/emails/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteEmail(id);
+      if (!success) {
+        res.status(404).json({ message: "Email not found" });
+        return;
+      }
+      res.json({ message: "Email deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete email" });
+    }
+  });
+
+  // Search routes
+  app.get("/api/search", async (req, res) => {
+    try {
+      const { q, type } = req.query;
+      if (!q || typeof q !== "string") {
+        res.status(400).json({ message: "Query parameter 'q' is required" });
+        return;
+      }
+
+      let results: any = {};
+      
+      if (!type || type === "leads") {
+        results.leads = await storage.searchLeads(q);
+      }
+      if (!type || type === "tickets") {
+        results.tickets = await storage.searchTickets(q);
+      }
+      if (!type || type === "deals") {
+        results.deals = await storage.searchDeals(q);
+      }
+      if (!type || type === "projects") {
+        results.projects = await storage.searchProjects(q);
+      }
+
+      res.json(results);
+    } catch (error) {
+      res.status(500).json({ message: "Search failed" });
     }
   });
 
@@ -208,19 +560,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Stats route for dashboard
+  // Enhanced stats route for dashboard
   app.get("/api/stats", async (req, res) => {
     try {
-      const leads = await storage.getLeads();
-      const tickets = await storage.getTickets();
-      const deals = await storage.getDeals();
-      const projects = await storage.getProjects();
+      const [leads, tickets, deals, projects, users] = await Promise.all([
+        storage.getLeads(),
+        storage.getTickets(),
+        storage.getDeals(),
+        storage.getProjects(),
+        storage.getUsers()
+      ]);
 
       const stats = {
         totalLeads: leads.length,
         activeTickets: tickets.filter(t => t.status !== "resolved").length,
-        totalRevenue: deals.reduce((sum, deal) => sum + deal.value, 0),
+        totalRevenue: deals.reduce((sum, deal) => sum + parseFloat(deal.value.toString()), 0),
         activeProjects: projects.filter(p => p.status === "active").length,
+        totalUsers: users.length,
         recentActivity: [
           ...leads.slice(-3).map(lead => ({
             type: "lead",
@@ -231,8 +587,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             type: "ticket",
             message: `Ticket ${ticket.status}: ${ticket.title}`,
             timestamp: ticket.updatedAt || ticket.createdAt
+          })),
+          ...deals.slice(-3).map(deal => ({
+            type: "deal",
+            message: `Deal ${deal.stage}: ${deal.title}`,
+            timestamp: deal.createdAt
           }))
-        ].sort((a, b) => new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime()).slice(0, 5)
+        ].sort((a, b) => new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime()).slice(0, 10)
       };
 
       res.json(stats);
