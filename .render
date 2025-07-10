@@ -1,1 +1,6 @@
-runtime = "node" 
+[build]
+nixpacksVersion = "1.7.0"
+
+[env]
+NODE_VERSION = "20.10.0"
+BUN_DISABLE = "1"
