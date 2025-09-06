@@ -691,7 +691,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const leads = await storage.getLeads();
       for (const lead of leads) {
         if (lead.status === 'new' || lead.status === 'contacted') {
-          const createdDate = new Date(lead.createdAt);
+          const createdDate = new Date(lead.createdAt || Date.now());
           if (createdDate <= twoDaysAgo) {
             reminders.push({
               id: `lead-${lead.id}`,
@@ -708,9 +708,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Sort reminders by priority and date
       reminders.sort((a, b) => {
-        const priorityOrder = { overdue: 0, urgent: 1, upcoming: 2, follow_up: 3 };
+        const priorityOrder: Record<string, number> = { overdue: 0, urgent: 1, upcoming: 2, follow_up: 3 };
         if (a.priority !== b.priority) {
-          return priorityOrder[a.priority] - priorityOrder[b.priority];
+          return (priorityOrder[a.priority] || 999) - (priorityOrder[b.priority] || 999);
         }
         if (a.dueDate && b.dueDate) {
           return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();

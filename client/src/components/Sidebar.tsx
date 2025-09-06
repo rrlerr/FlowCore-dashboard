@@ -4,6 +4,7 @@ import {
   MessageSquare, Search, Plus
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import RemindersNotification from "@/components/RemindersNotification";
 import { cn } from "@/lib/utils";
 
 interface SidebarProps {
@@ -43,6 +44,7 @@ export default function Sidebar({ activeModule, onModuleChange }: SidebarProps) 
           <Button size="sm" variant="outline">
             <Search className="w-4 h-4" />
           </Button>
+          <RemindersNotification />
         </div>
       </div>
       
