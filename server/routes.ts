@@ -600,6 +600,130 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Reminders endpoint
+  app.get("/api/reminders", async (req, res) => {
+    try {
+      const reminders = [];
+      const now = new Date();
+      const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+      const twoDaysFromNow = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000);
+
+      // Check tickets with due dates
+      const tickets = await storage.getTickets();
+      for (const ticket of tickets) {
+        if (ticket.dueDate && ticket.status !== 'resolved' && ticket.status !== 'closed') {
+          const dueDate = new Date(ticket.dueDate);
+          if (dueDate <= twoDaysFromNow) {
+            reminders.push({
+              id: `ticket-${ticket.id}`,
+              type: 'ticket',
+              title: `Ticket Due: ${ticket.title}`,
+              description: `Ticket #${ticket.id} is due ${dueDate <= now ? 'now' : dueDate <= tomorrow ? 'tomorrow' : 'soon'}`,
+              dueDate: ticket.dueDate,
+              priority: dueDate <= now ? 'overdue' : dueDate <= tomorrow ? 'urgent' : 'upcoming',
+              itemId: ticket.id
+            });
+          }
+        }
+      }
+
+      // Check tasks with due dates
+      const tasks = await storage.getTasks();
+      for (const task of tasks) {
+        if (task.dueDate && task.status !== 'completed' && task.status !== 'cancelled') {
+          const dueDate = new Date(task.dueDate);
+          if (dueDate <= twoDaysFromNow) {
+            reminders.push({
+              id: `task-${task.id}`,
+              type: 'task',
+              title: `Task Due: ${task.title}`,
+              description: `Task "${task.title}" is due ${dueDate <= now ? 'now' : dueDate <= tomorrow ? 'tomorrow' : 'soon'}`,
+              dueDate: task.dueDate,
+              priority: dueDate <= now ? 'overdue' : dueDate <= tomorrow ? 'urgent' : 'upcoming',
+              itemId: task.id
+            });
+          }
+        }
+      }
+
+      // Check deals with expected close dates
+      const deals = await storage.getDeals();
+      for (const deal of deals) {
+        if (deal.expectedCloseDate && deal.stage !== 'closed_won' && deal.stage !== 'closed_lost') {
+          const closeDate = new Date(deal.expectedCloseDate);
+          if (closeDate <= twoDaysFromNow) {
+            reminders.push({
+              id: `deal-${deal.id}`,
+              type: 'deal',
+              title: `Deal Expected Close: ${deal.title}`,
+              description: `Deal "${deal.title}" is expected to close ${closeDate <= now ? 'now' : closeDate <= tomorrow ? 'tomorrow' : 'soon'}`,
+              dueDate: deal.expectedCloseDate,
+              priority: closeDate <= now ? 'overdue' : closeDate <= tomorrow ? 'urgent' : 'upcoming',
+              itemId: deal.id
+            });
+          }
+        }
+      }
+
+      // Check projects with end dates
+      const projects = await storage.getProjects();
+      for (const project of projects) {
+        if (project.endDate && project.status !== 'completed' && project.status !== 'cancelled') {
+          const endDate = new Date(project.endDate);
+          if (endDate <= twoDaysFromNow) {
+            reminders.push({
+              id: `project-${project.id}`,
+              type: 'project',
+              title: `Project Due: ${project.name}`,
+              description: `Project "${project.name}" is due ${endDate <= now ? 'now' : endDate <= tomorrow ? 'tomorrow' : 'soon'}`,
+              dueDate: project.endDate,
+              priority: endDate <= now ? 'overdue' : endDate <= tomorrow ? 'urgent' : 'upcoming',
+              itemId: project.id
+            });
+          }
+        }
+      }
+
+      // Check for items without deadlines (created more than 2 days ago)
+      const twoDaysAgo = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
+      
+      // Check leads without follow-up
+      const leads = await storage.getLeads();
+      for (const lead of leads) {
+        if (lead.status === 'new' || lead.status === 'contacted') {
+          const createdDate = new Date(lead.createdAt);
+          if (createdDate <= twoDaysAgo) {
+            reminders.push({
+              id: `lead-${lead.id}`,
+              type: 'lead',
+              title: `Follow-up Lead: ${lead.name}`,
+              description: `Lead "${lead.name}" needs follow-up (no activity for 2+ days)`,
+              dueDate: null,
+              priority: 'follow_up',
+              itemId: lead.id
+            });
+          }
+        }
+      }
+
+      // Sort reminders by priority and date
+      reminders.sort((a, b) => {
+        const priorityOrder = { overdue: 0, urgent: 1, upcoming: 2, follow_up: 3 };
+        if (a.priority !== b.priority) {
+          return priorityOrder[a.priority] - priorityOrder[b.priority];
+        }
+        if (a.dueDate && b.dueDate) {
+          return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+        }
+        return 0;
+      });
+
+      res.json(reminders);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch reminders" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
