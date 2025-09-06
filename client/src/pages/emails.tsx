@@ -10,7 +10,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Search, Edit, Trash2, Mail, Calendar, User, Send } from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 interface Email {
@@ -76,11 +75,13 @@ export default function EmailsPage() {
 
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest("/api/emails", {
+      const response = await fetch("/api/emails", {
         method: "POST",
         body: JSON.stringify(data),
         headers: { "Content-Type": "application/json" },
       });
+      if (!response.ok) throw new Error('Failed to create email');
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/emails"] });
@@ -94,11 +95,13 @@ export default function EmailsPage() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: any }) => {
-      return await apiRequest(`/api/emails/${id}`, {
+      const response = await fetch(`/api/emails/${id}`, {
         method: "PUT",
         body: JSON.stringify(data),
         headers: { "Content-Type": "application/json" },
       });
+      if (!response.ok) throw new Error('Failed to update email');
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/emails"] });
@@ -112,7 +115,9 @@ export default function EmailsPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      return await apiRequest(`/api/emails/${id}`, { method: "DELETE" });
+      const response = await fetch(`/api/emails/${id}`, { method: "DELETE" });
+      if (!response.ok) throw new Error('Failed to delete email');
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/emails"] });
@@ -123,7 +128,7 @@ export default function EmailsPage() {
     },
   });
 
-  const filteredEmails = emails.filter((email: Email) =>
+  const filteredEmails = (emails as Email[]).filter((email: Email) =>
     email.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
     email.to.toLowerCase().includes(searchQuery.toLowerCase()) ||
     email.body.toLowerCase().includes(searchQuery.toLowerCase())
@@ -140,8 +145,8 @@ export default function EmailsPage() {
       body: formData.get("body") as string,
       type: formData.get("type") as string || "transactional",
       status: formData.get("status") as string || "draft",
-      leadId: formData.get("leadId") ? parseInt(formData.get("leadId") as string) : null,
-      sentBy: formData.get("sentBy") ? parseInt(formData.get("sentBy") as string) : null,
+      leadId: formData.get("leadId") && formData.get("leadId") !== "null" && formData.get("leadId") !== "" ? parseInt(formData.get("leadId") as string) : null,
+      sentBy: formData.get("sentBy") && formData.get("sentBy") !== "null" && formData.get("sentBy") !== "" ? parseInt(formData.get("sentBy") as string) : null,
     };
 
     if (editingEmail) {
@@ -231,7 +236,7 @@ export default function EmailsPage() {
                       <SelectValue placeholder="Select lead" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">No lead</SelectItem>
+                      <SelectItem value="null">No lead</SelectItem>
                       {leads.map((lead) => (
                         <SelectItem key={lead.id} value={lead.id.toString()}>
                           {lead.name} ({lead.email})
@@ -247,7 +252,7 @@ export default function EmailsPage() {
                       <SelectValue placeholder="Select user" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Unknown</SelectItem>
+                      <SelectItem value="null">Unknown</SelectItem>
                       {users.map((user) => (
                         <SelectItem key={user.id} value={user.id.toString()}>
                           {user.fullName || `User ${user.id}`} ({user.email})

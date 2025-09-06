@@ -132,7 +132,7 @@ export default function TicketsPage() {
       priority: formData.get("priority") as string || "medium",
       category: formData.get("category") as string || null,
       assignedTo: formData.get("assignedTo") && formData.get("assignedTo") !== "null" ? parseInt(formData.get("assignedTo") as string) : null,
-      reportedBy: formData.get("reportedBy") && formData.get("reportedBy") !== "null" ? parseInt(formData.get("reportedBy") as string) : null,
+      reportedBy: formData.get("reportedBy") && formData.get("reportedBy") !== "null" && formData.get("reportedBy") !== "0" ? parseInt(formData.get("reportedBy") as string) : null,
       dueDate: formData.get("dueDate") ? new Date(formData.get("dueDate") as string) : null,
       resolution: formData.get("resolution") as string || null,
     };
@@ -240,7 +240,7 @@ export default function TicketsPage() {
                       <SelectValue placeholder="Select user" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="0">Unknown</SelectItem>
+                      <SelectItem value="null">Unknown</SelectItem>
                       {users.map((user) => (
                         <SelectItem key={user.id} value={user.id.toString()}>
                           {user.fullName || `User ${user.id}`}
