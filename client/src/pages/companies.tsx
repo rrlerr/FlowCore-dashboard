@@ -8,7 +8,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Search, Edit, Trash2, Building2, Mail, Phone, MapPin, Calendar } from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 interface Company {
@@ -36,11 +35,13 @@ export default function CompaniesPage() {
 
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest("/api/companies", {
+      const response = await fetch("/api/companies", {
         method: "POST",
         body: JSON.stringify(data),
         headers: { "Content-Type": "application/json" },
       });
+      if (!response.ok) throw new Error('Failed to create company');
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
@@ -54,11 +55,13 @@ export default function CompaniesPage() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: any }) => {
-      return await apiRequest(`/api/companies/${id}`, {
+      const response = await fetch(`/api/companies/${id}`, {
         method: "PUT",
         body: JSON.stringify(data),
         headers: { "Content-Type": "application/json" },
       });
+      if (!response.ok) throw new Error('Failed to update company');
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
@@ -72,7 +75,9 @@ export default function CompaniesPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      return await apiRequest(`/api/companies/${id}`, { method: "DELETE" });
+      const response = await fetch(`/api/companies/${id}`, { method: "DELETE" });
+      if (!response.ok) throw new Error('Failed to delete company');
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
@@ -83,7 +88,7 @@ export default function CompaniesPage() {
     },
   });
 
-  const filteredCompanies = companies.filter((company: Company) =>
+  const filteredCompanies = (companies as Company[]).filter((company: Company) =>
     company.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (company.industry && company.industry.toLowerCase().includes(searchQuery.toLowerCase())) ||
     (company.notes && company.notes.toLowerCase().includes(searchQuery.toLowerCase()))

@@ -10,7 +10,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Search, Edit, Trash2, Calendar, User, FolderOpen } from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 interface Task {
@@ -74,11 +73,13 @@ export default function TasksPage() {
 
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest("/api/tasks", {
+      const response = await fetch("/api/tasks", {
         method: "POST",
         body: JSON.stringify(data),
         headers: { "Content-Type": "application/json" },
       });
+      if (!response.ok) throw new Error('Failed to create task');
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
@@ -92,11 +93,13 @@ export default function TasksPage() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: any }) => {
-      return await apiRequest(`/api/tasks/${id}`, {
+      const response = await fetch(`/api/tasks/${id}`, {
         method: "PUT",
         body: JSON.stringify(data),
         headers: { "Content-Type": "application/json" },
       });
+      if (!response.ok) throw new Error('Failed to update task');
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
@@ -110,7 +113,9 @@ export default function TasksPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      return await apiRequest(`/api/tasks/${id}`, { method: "DELETE" });
+      const response = await fetch(`/api/tasks/${id}`, { method: "DELETE" });
+      if (!response.ok) throw new Error('Failed to delete task');
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
@@ -121,7 +126,7 @@ export default function TasksPage() {
     },
   });
 
-  const filteredTasks = tasks.filter((task: Task) =>
+  const filteredTasks = (tasks as Task[]).filter((task: Task) =>
     task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (task.description && task.description.toLowerCase().includes(searchQuery.toLowerCase()))
   );
@@ -134,8 +139,8 @@ export default function TasksPage() {
       description: formData.get("description") as string || null,
       status: formData.get("status") as string || "todo",
       priority: formData.get("priority") as string || "medium",
-      assignedTo: formData.get("assignedTo") ? parseInt(formData.get("assignedTo") as string) : null,
-      projectId: formData.get("projectId") ? parseInt(formData.get("projectId") as string) : null,
+      assignedTo: formData.get("assignedTo") && formData.get("assignedTo") !== "null" && formData.get("assignedTo") !== "" ? parseInt(formData.get("assignedTo") as string) : null,
+      projectId: formData.get("projectId") && formData.get("projectId") !== "null" && formData.get("projectId") !== "" ? parseInt(formData.get("projectId") as string) : null,
       estimatedHours: formData.get("estimatedHours") as string || null,
       actualHours: formData.get("actualHours") as string || null,
       dueDate: formData.get("dueDate") ? new Date(formData.get("dueDate") as string) : null,
@@ -215,7 +220,7 @@ export default function TasksPage() {
                       <SelectValue placeholder="Select user" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Unassigned</SelectItem>
+                      <SelectItem value="null">Unassigned</SelectItem>
                       {users.map((user) => (
                         <SelectItem key={user.id} value={user.id.toString()}>
                           {user.fullName || `User ${user.id}`}
@@ -231,7 +236,7 @@ export default function TasksPage() {
                       <SelectValue placeholder="Select project" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">No project</SelectItem>
+                      <SelectItem value="null">No project</SelectItem>
                       {projects.map((project) => (
                         <SelectItem key={project.id} value={project.id.toString()}>
                           {project.name}

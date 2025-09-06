@@ -11,7 +11,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Plus, Search, Edit, Trash2, Calendar, User, Building2 } from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 interface Project {
@@ -74,11 +73,13 @@ export default function ProjectsPage() {
 
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest("/api/projects", {
+      const response = await fetch("/api/projects", {
         method: "POST",
         body: JSON.stringify(data),
         headers: { "Content-Type": "application/json" },
       });
+      if (!response.ok) throw new Error('Failed to create project');
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
@@ -92,11 +93,13 @@ export default function ProjectsPage() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: any }) => {
-      return await apiRequest(`/api/projects/${id}`, {
+      const response = await fetch(`/api/projects/${id}`, {
         method: "PUT",
         body: JSON.stringify(data),
         headers: { "Content-Type": "application/json" },
       });
+      if (!response.ok) throw new Error('Failed to update project');
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
@@ -110,7 +113,9 @@ export default function ProjectsPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      return await apiRequest(`/api/projects/${id}`, { method: "DELETE" });
+      const response = await fetch(`/api/projects/${id}`, { method: "DELETE" });
+      if (!response.ok) throw new Error('Failed to delete project');
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
@@ -121,7 +126,7 @@ export default function ProjectsPage() {
     },
   });
 
-  const filteredProjects = projects.filter((project: Project) =>
+  const filteredProjects = (projects as Project[]).filter((project: Project) =>
     project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (project.description && project.description.toLowerCase().includes(searchQuery.toLowerCase()))
   );
@@ -136,8 +141,8 @@ export default function ProjectsPage() {
       priority: formData.get("priority") as string || "medium",
       progress: formData.get("progress") ? parseInt(formData.get("progress") as string) : 0,
       budget: formData.get("budget") as string || null,
-      clientId: formData.get("clientId") ? parseInt(formData.get("clientId") as string) : null,
-      managerId: formData.get("managerId") ? parseInt(formData.get("managerId") as string) : null,
+      clientId: formData.get("clientId") && formData.get("clientId") !== "null" && formData.get("clientId") !== "" ? parseInt(formData.get("clientId") as string) : null,
+      managerId: formData.get("managerId") && formData.get("managerId") !== "null" && formData.get("managerId") !== "" ? parseInt(formData.get("managerId") as string) : null,
       startDate: formData.get("startDate") ? new Date(formData.get("startDate") as string) : null,
       endDate: formData.get("endDate") ? new Date(formData.get("endDate") as string) : null,
     };
@@ -230,7 +235,7 @@ export default function ProjectsPage() {
                       <SelectValue placeholder="Select manager" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">No manager</SelectItem>
+                      <SelectItem value="null">No manager</SelectItem>
                       {users.map((user) => (
                         <SelectItem key={user.id} value={user.id.toString()}>
                           {user.fullName || `User ${user.id}`}
@@ -246,7 +251,7 @@ export default function ProjectsPage() {
                       <SelectValue placeholder="Select client" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">No client</SelectItem>
+                      <SelectItem value="null">No client</SelectItem>
                       {companies.map((company) => (
                         <SelectItem key={company.id} value={company.id.toString()}>
                           {company.name}

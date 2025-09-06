@@ -10,7 +10,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Plus, Search, Edit, Trash2, User, Mail, Phone, Shield, Calendar } from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 interface User {
@@ -49,11 +48,13 @@ export default function UsersPage() {
 
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest("/api/users", {
+      const response = await fetch("/api/users", {
         method: "POST",
         body: JSON.stringify(data),
         headers: { "Content-Type": "application/json" },
       });
+      if (!response.ok) throw new Error('Failed to create user');
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
@@ -67,11 +68,13 @@ export default function UsersPage() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: any }) => {
-      return await apiRequest(`/api/users/${id}`, {
+      const response = await fetch(`/api/users/${id}`, {
         method: "PUT",
         body: JSON.stringify(data),
         headers: { "Content-Type": "application/json" },
       });
+      if (!response.ok) throw new Error('Failed to update user');
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
@@ -85,7 +88,9 @@ export default function UsersPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      return await apiRequest(`/api/users/${id}`, { method: "DELETE" });
+      const response = await fetch(`/api/users/${id}`, { method: "DELETE" });
+      if (!response.ok) throw new Error('Failed to delete user');
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
@@ -96,7 +101,7 @@ export default function UsersPage() {
     },
   });
 
-  const filteredUsers = users.filter((user: User) =>
+  const filteredUsers = (users as User[]).filter((user: User) =>
     user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
     user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (user.fullName && user.fullName.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -111,13 +116,13 @@ export default function UsersPage() {
       password: formData.get("password") as string,
       fullName: formData.get("fullName") as string || null,
       phone: formData.get("phone") as string || null,
-      roleId: formData.get("roleId") ? parseInt(formData.get("roleId") as string) : null,
+      roleId: formData.get("roleId") && formData.get("roleId") !== "null" && formData.get("roleId") !== "" ? parseInt(formData.get("roleId") as string) : null,
       isActive: formData.get("isActive") === "true",
     };
 
     // Don't send password if editing and field is empty
     if (editingUser && !data.password) {
-      delete data.password;
+      delete (data as any).password;
     }
 
     if (editingUser) {
@@ -189,7 +194,7 @@ export default function UsersPage() {
                       <SelectValue placeholder="Select role" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">No role</SelectItem>
+                      <SelectItem value="null">No role</SelectItem>
                       {roles.map((role) => (
                         <SelectItem key={role.id} value={role.id.toString()}>
                           {role.name} - {role.description}
