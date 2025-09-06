@@ -10,7 +10,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Search, Edit, Trash2, DollarSign, Calendar, Building2, User } from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 interface Deal {
@@ -77,11 +76,13 @@ export default function DealsPage() {
 
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest("/api/deals", {
+      const response = await fetch("/api/deals", {
         method: "POST",
         body: JSON.stringify(data),
         headers: { "Content-Type": "application/json" },
       });
+      if (!response.ok) throw new Error('Failed to create deal');
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/deals"] });
@@ -95,11 +96,13 @@ export default function DealsPage() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: any }) => {
-      return await apiRequest(`/api/deals/${id}`, {
+      const response = await fetch(`/api/deals/${id}`, {
         method: "PUT",
         body: JSON.stringify(data),
         headers: { "Content-Type": "application/json" },
       });
+      if (!response.ok) throw new Error('Failed to update deal');
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/deals"] });
@@ -113,7 +116,9 @@ export default function DealsPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      return await apiRequest(`/api/deals/${id}`, { method: "DELETE" });
+      const response = await fetch(`/api/deals/${id}`, { method: "DELETE" });
+      if (!response.ok) throw new Error('Failed to delete deal');
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/deals"] });
@@ -124,7 +129,7 @@ export default function DealsPage() {
     },
   });
 
-  const filteredDeals = deals.filter((deal: Deal) =>
+  const filteredDeals = (deals as Deal[]).filter((deal: Deal) =>
     deal.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (deal.notes && deal.notes.toLowerCase().includes(searchQuery.toLowerCase()))
   );

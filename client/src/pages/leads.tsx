@@ -10,7 +10,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Search, Edit, Trash2, Building2, Mail, Phone, User } from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 interface Lead {
@@ -73,11 +72,13 @@ export default function LeadsPage() {
 
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest("/api/leads", {
+      const response = await fetch("/api/leads", {
         method: "POST",
         body: JSON.stringify(data),
         headers: { "Content-Type": "application/json" },
       });
+      if (!response.ok) throw new Error('Failed to create lead');
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
@@ -91,11 +92,13 @@ export default function LeadsPage() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: any }) => {
-      return await apiRequest(`/api/leads/${id}`, {
+      const response = await fetch(`/api/leads/${id}`, {
         method: "PUT",
         body: JSON.stringify(data),
         headers: { "Content-Type": "application/json" },
       });
+      if (!response.ok) throw new Error('Failed to update lead');
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
@@ -109,7 +112,9 @@ export default function LeadsPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      return await apiRequest(`/api/leads/${id}`, { method: "DELETE" });
+      const response = await fetch(`/api/leads/${id}`, { method: "DELETE" });
+      if (!response.ok) throw new Error('Failed to delete lead');
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
@@ -120,7 +125,7 @@ export default function LeadsPage() {
     },
   });
 
-  const filteredLeads = leads.filter((lead: Lead) =>
+  const filteredLeads = (leads as Lead[]).filter((lead: Lead) =>
     lead.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     lead.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (lead.notes && lead.notes.toLowerCase().includes(searchQuery.toLowerCase()))

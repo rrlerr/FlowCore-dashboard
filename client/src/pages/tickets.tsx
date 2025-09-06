@@ -10,7 +10,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Search, Edit, Trash2, Calendar, User, AlertCircle } from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 interface Ticket {
@@ -64,11 +63,13 @@ export default function TicketsPage() {
 
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest("/api/tickets", {
+      const response = await fetch("/api/tickets", {
         method: "POST",
         body: JSON.stringify(data),
         headers: { "Content-Type": "application/json" },
       });
+      if (!response.ok) throw new Error('Failed to create ticket');
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/tickets"] });
@@ -82,11 +83,13 @@ export default function TicketsPage() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: any }) => {
-      return await apiRequest(`/api/tickets/${id}`, {
+      const response = await fetch(`/api/tickets/${id}`, {
         method: "PUT",
         body: JSON.stringify(data),
         headers: { "Content-Type": "application/json" },
       });
+      if (!response.ok) throw new Error('Failed to update ticket');
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/tickets"] });
@@ -100,7 +103,9 @@ export default function TicketsPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      return await apiRequest(`/api/tickets/${id}`, { method: "DELETE" });
+      const response = await fetch(`/api/tickets/${id}`, { method: "DELETE" });
+      if (!response.ok) throw new Error('Failed to delete ticket');
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/tickets"] });
@@ -111,7 +116,7 @@ export default function TicketsPage() {
     },
   });
 
-  const filteredTickets = tickets.filter((ticket: Ticket) =>
+  const filteredTickets = (tickets as Ticket[]).filter((ticket: Ticket) =>
     ticket.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     ticket.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (ticket.category && ticket.category.toLowerCase().includes(searchQuery.toLowerCase()))
