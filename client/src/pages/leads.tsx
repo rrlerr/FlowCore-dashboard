@@ -139,12 +139,12 @@ export default function LeadsPage() {
       email: formData.get("email") as string,
       phone: formData.get("phone") as string || null,
       jobTitle: formData.get("jobTitle") as string || null,
-      companyId: formData.get("companyId") ? parseInt(formData.get("companyId") as string) : null,
+      companyId: formData.get("companyId") && formData.get("companyId") !== "null" ? parseInt(formData.get("companyId") as string) : null,
       status: formData.get("status") as string || "new",
       priority: formData.get("priority") as string || "medium",
       source: formData.get("source") as string || null,
       notes: formData.get("notes") as string || null,
-      assignedTo: formData.get("assignedTo") ? parseInt(formData.get("assignedTo") as string) : null,
+      assignedTo: formData.get("assignedTo") && formData.get("assignedTo") !== "null" ? parseInt(formData.get("assignedTo") as string) : null,
     };
 
     if (editingLead) {
@@ -200,7 +200,7 @@ export default function LeadsPage() {
                       <SelectValue placeholder="Select company" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="0">No company</SelectItem>
+                      <SelectItem value="null">No company</SelectItem>
                       {companies.map((company) => (
                         <SelectItem key={company.id} value={company.id.toString()}>
                           {company.name}
@@ -248,7 +248,7 @@ export default function LeadsPage() {
                       <SelectValue placeholder="Select user" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="0">Unassigned</SelectItem>
+                      <SelectItem value="null">Unassigned</SelectItem>
                       {users.map((user) => (
                         <SelectItem key={user.id} value={user.id.toString()}>
                           {user.fullName || `User ${user.id}`}

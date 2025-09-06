@@ -144,9 +144,9 @@ export default function DealsPage() {
       value: formData.get("value") as string,
       stage: formData.get("stage") as string || "prospecting",
       probability: formData.get("probability") ? parseInt(formData.get("probability") as string) : 0,
-      leadId: formData.get("leadId") ? parseInt(formData.get("leadId") as string) : null,
-      companyId: formData.get("companyId") ? parseInt(formData.get("companyId") as string) : null,
-      assignedTo: formData.get("assignedTo") ? parseInt(formData.get("assignedTo") as string) : null,
+      leadId: formData.get("leadId") && formData.get("leadId") !== "null" ? parseInt(formData.get("leadId") as string) : null,
+      companyId: formData.get("companyId") && formData.get("companyId") !== "null" ? parseInt(formData.get("companyId") as string) : null,
+      assignedTo: formData.get("assignedTo") && formData.get("assignedTo") !== "null" ? parseInt(formData.get("assignedTo") as string) : null,
       expectedCloseDate: formData.get("expectedCloseDate") ? new Date(formData.get("expectedCloseDate") as string) : null,
       actualCloseDate: formData.get("actualCloseDate") ? new Date(formData.get("actualCloseDate") as string) : null,
       notes: formData.get("notes") as string || null,
@@ -231,7 +231,7 @@ export default function DealsPage() {
                       <SelectValue placeholder="Select user" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="0">Unassigned</SelectItem>
+                      <SelectItem value="null">Unassigned</SelectItem>
                       {users.map((user) => (
                         <SelectItem key={user.id} value={user.id.toString()}>
                           {user.fullName || `User ${user.id}`}

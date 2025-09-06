@@ -131,8 +131,8 @@ export default function TicketsPage() {
       status: formData.get("status") as string || "open",
       priority: formData.get("priority") as string || "medium",
       category: formData.get("category") as string || null,
-      assignedTo: formData.get("assignedTo") ? parseInt(formData.get("assignedTo") as string) : null,
-      reportedBy: formData.get("reportedBy") ? parseInt(formData.get("reportedBy") as string) : null,
+      assignedTo: formData.get("assignedTo") && formData.get("assignedTo") !== "null" ? parseInt(formData.get("assignedTo") as string) : null,
+      reportedBy: formData.get("reportedBy") && formData.get("reportedBy") !== "null" ? parseInt(formData.get("reportedBy") as string) : null,
       dueDate: formData.get("dueDate") ? new Date(formData.get("dueDate") as string) : null,
       resolution: formData.get("resolution") as string || null,
     };
