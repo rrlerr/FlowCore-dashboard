@@ -52,22 +52,6 @@ function Router() {
     // This would trigger modal opening in the target module
   };
 
-  const renderPage = () => {
-    switch (activeModule) {
-      case "dashboard": return <Dashboard />;
-      case "leads": return <LeadsPage />;
-      case "tickets": return <TicketsPage />;
-      case "deals": return <DealsPage />;
-      case "projects": return <ProjectsPage />;
-      case "tasks": return <TasksPage />;
-      case "emails": return <EmailsPage />;
-      case "users": return <UsersPage />;
-      case "companies": return <CompaniesPage />;
-      case "reports": return <ReportsPage />;
-      default: return <Dashboard />;
-    }
-  };
-
   return (
     <Layout activeModule={activeModule} onModuleChange={handleModuleChange}>
       <Switch>
