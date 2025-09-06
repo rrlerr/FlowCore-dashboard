@@ -1,11 +1,3 @@
-import { useState } from "react";
-import Layout from "@/components/Layout";
-import CRMModule from "@/components/CRM/CRMModule";
-import TicketsModule from "@/components/Tickets/TicketsModule";
-import SalesModule from "@/components/Sales/SalesModule";
-import ProjectsModule from "@/components/Projects/ProjectsModule";
-import EmailModule from "@/components/Email/EmailModule";
-import AIAssistant from "@/components/AIAssistant/AIAssistant";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Users, Ticket, DollarSign, FolderOpen } from "lucide-react";
@@ -34,50 +26,22 @@ ChartJS.register(
 );
 
 export default function Dashboard() {
-  const [activeModule, setActiveModule] = useState("dashboard");
-  const [modalRequest, setModalRequest] = useState<{type: string; module: string} | null>(null);
-
   const { data: stats, isLoading } = useQuery({
     queryKey: ["/api/stats"],
     refetchInterval: 30000, // Refresh every 30 seconds
   });
 
-  const handleOpenModal = (type: string, module: string) => {
-    setModalRequest({ type, module });
-  };
-
-  const renderModule = () => {
-    switch (activeModule) {
-      case "crm":
-        return <CRMModule modalRequest={modalRequest} onModalHandled={() => setModalRequest(null)} />;
-      case "tickets":
-        return <TicketsModule modalRequest={modalRequest} onModalHandled={() => setModalRequest(null)} />;
-      case "sales":
-        return <SalesModule modalRequest={modalRequest} onModalHandled={() => setModalRequest(null)} />;
-      case "projects":
-        return <ProjectsModule modalRequest={modalRequest} onModalHandled={() => setModalRequest(null)} />;
-      case "email":
-        return <EmailModule modalRequest={modalRequest} onModalHandled={() => setModalRequest(null)} />;
-      default:
-        return <DashboardContent stats={stats} isLoading={isLoading} />;
-    }
-  };
-
-  return (
-    <Layout activeModule={activeModule} onModuleChange={setActiveModule}>
-      {renderModule()}
-      <AIAssistant onModuleChange={setActiveModule} onOpenModal={handleOpenModal} />
-    </Layout>
-  );
+  return <DashboardContent stats={stats} isLoading={isLoading} />;
 }
 
 function DashboardContent({ stats, isLoading }: { stats: any; isLoading: boolean }) {
+  // Generate chart data from actual deals/revenue data
   const salesData = {
     labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
     datasets: [
       {
-        label: 'Sales',
-        data: [12000, 19000, 15000, 25000, 22000, 30000],
+        label: 'Revenue',
+        data: stats?.monthlyRevenue || [0, 0, 0, 0, 0, 0],
         borderColor: 'hsl(207, 90%, 54%)',
         backgroundColor: 'hsla(207, 90%, 54%, 0.1)',
         tension: 0.4,

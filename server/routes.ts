@@ -9,7 +9,7 @@ import {
 import { processLocalAIMessage } from "./localAI";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Initialize default roles and admin user
+  // Initialize basic user roles only (no dummy users)
   try {
     const roles = await storage.getUserRoles();
     if (roles.length === 0) {
@@ -17,20 +17,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.createUserRole({ name: "manager", description: "Team management", permissions: ["read", "write", "manage_team"] });
       await storage.createUserRole({ name: "user", description: "Basic user access", permissions: ["read", "write"] });
     }
-    
-    const users = await storage.getUsers();
-    if (users.length === 0) {
-      await storage.createUser({
-        username: "admin",
-        email: "admin@flowcore.com",
-        password: "admin123",
-        fullName: "System Administrator",
-        roleId: 1,
-        isActive: true
-      });
-    }
   } catch (error) {
-    console.error("Failed to initialize default data:", error);
+    console.error("Failed to initialize user roles:", error);
   }
 
   // User role routes
